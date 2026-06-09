@@ -283,6 +283,21 @@ def cloudlab_kill(ctx):
 
 
 @task
+def local_clean(ctx):
+    ''' Clean local benchmark logs, databases, config files, and processes '''
+    LocalBench.clean()
+
+
+@task
+def cloudlab_clean(ctx):
+    ''' Clean benchmark artifacts on all CloudLab nodes '''
+    try:
+        CloudLabBench(ctx).clean()
+    except BenchError as e:
+        Print.error(e)
+
+
+@task
 def cloudlab_download_primary_logs(ctx, nodes='0,1,2,3'):
     ''' Download primary logs from specified CloudLab nodes (default: 0,1,2,3) '''
     import sys

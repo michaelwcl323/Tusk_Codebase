@@ -35,21 +35,37 @@ class LocalBench:
         except subprocess.SubprocessError as e:
             raise BenchError('Failed to kill testbed', e)
 
+    @staticmethod
+    def clean():
+        '''Stop local benchmark processes and remove generated artifacts.'''
+        Print.heading('Cleaning local benchmark artifacts')
+        try:
+            subprocess.run(
+                CommandMaker.kill().split(),
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.SubprocessError:
+            pass
+        cmd = f'{CommandMaker.clean_logs()} ; {CommandMaker.cleanup()}'
+        subprocess.run([cmd], shell=True, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            'rm -f node benchmark_client',
+            shell=True,
+            stderr=subprocess.DEVNULL,
+        )
+        sleep(0.5)  # Removing the store may take time.
+        Print.info('Done')
+
     def run(self, debug=False):
         assert isinstance(debug, bool)
         Print.heading('Starting local benchmark')
 
-        # Kill any previous testbed.
-        self._kill_nodes()
+        # Kill any previous testbed and cleanup artifacts.
+        LocalBench.clean()
 
         try:
             Print.info('Setting up testbed...')
             nodes, rate = self.nodes[0], self.rate[0]
-
-            # Cleanup all files.
-            cmd = f'{CommandMaker.clean_logs()} ; {CommandMaker.cleanup()}'
-            subprocess.run([cmd], shell=True, stderr=subprocess.DEVNULL)
-            sleep(0.5)  # Removing the store may take time.
 
             # Recompile the latest code.
             cmd = CommandMaker.compile().split()

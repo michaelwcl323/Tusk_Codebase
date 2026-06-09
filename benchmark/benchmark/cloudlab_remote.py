@@ -587,6 +587,68 @@ class CloudLabBench:
             # Don't fail if kill commands have errors - processes might not exist
             Print.warn(f'Some kill commands failed (this is OK if processes don\'t exist): {e}')
             raise BenchError('Failed to kill nodes', FabricError(e))
+
+    def clean(self, hosts=[]):
+        """Stop processes and remove benchmark artifacts on CloudLab nodes."""
+        assert isinstance(hosts, list)
+        Print.heading('Cleaning benchmark artifacts on CloudLab nodes')
+
+        repo_name = self.settings.repo_name
+        cmd = f'''
+            cd {repo_name} 2>/dev/null || exit 0
+            pkill -9 -f "node.*primary" 2>/dev/null || true
+            pkill -9 -f "node.*worker" 2>/dev/null || true
+            pkill -9 -f "benchmark_client" 2>/dev/null || true
+            pkill -9 -f "/tmp/run_(primary|worker|client)-" 2>/dev/null || true
+            {CommandMaker.clean_logs()}
+            rm -rf .db-* 2>/dev/null || true
+            rm -f .*.json 2>/dev/null || true
+            rm -f benchmark_client 2>/dev/null || true
+            mkdir -p {PathMaker.results_path()}
+        '''
+
+        host_info = self.manager.get_host_info()
+        try:
+            if not hosts:
+                hosts_by_config = {}
+                for host in host_info:
+                    username = host.get('username', 'root')
+                    hostname = host['hostname']
+                    port = host.get('port', 22)
+                    key = (username, port)
+                    if key not in hosts_by_config:
+                        hosts_by_config[key] = []
+                    hosts_by_config[key].append(hostname)
+
+                for (username, port), hostnames in hosts_by_config.items():
+                    conn_kwargs = self._get_connection_kwargs({})
+                    g = Group(*hostnames, user=username, port=port, connect_kwargs=conn_kwargs)
+                    g.run(cmd, hide=True, warn=True)
+            else:
+                hosts_by_config = {}
+                for h in hosts:
+                    if isinstance(h, dict):
+                        hostname = h['hostname']
+                        username = h.get('username', 'root')
+                        port = h.get('port', 22)
+                    else:
+                        hostname = h.split('@')[1]
+                        username = h.split('@')[0]
+                        port = 22
+                    key = (username, port)
+                    if key not in hosts_by_config:
+                        hosts_by_config[key] = []
+                    hosts_by_config[key].append(hostname)
+
+                for (username, port), hostnames in hosts_by_config.items():
+                    conn_kwargs = self._get_connection_kwargs({})
+                    g = Group(*hostnames, user=username, port=port, connect_kwargs=conn_kwargs)
+                    g.run(cmd, hide=True, warn=True)
+        except GroupException as e:
+            Print.warn(f'Some clean commands failed: {e}')
+            raise BenchError('Failed to clean nodes', FabricError(e))
+
+        Print.info('Done')
     
     def _select_hosts(self, bench_parameters):
         """Select hosts based on benchmark parameters"""
