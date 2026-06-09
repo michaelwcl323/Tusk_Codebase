@@ -199,7 +199,7 @@ class CloudLabBench:
             # Add cargo to PATH permanently
             'echo "export PATH=\\$HOME/.cargo/bin:\\$PATH" >> $HOME/.bashrc',
             'echo "export PATH=\\$HOME/.cargo/bin:\\$PATH" >> $HOME/.profile',
-            f'(git clone {self.settings.repo_url} || (cd {self.settings.repo_name} ; git pull))',
+            f'(git clone {self.settings.repo_url} {self.settings.repo_name} || (cd {self.settings.repo_name} ; git pull))',
             f'cd {self.settings.repo_name}/benchmark && pip3 install -r requirements.txt'
         ]
         
@@ -1023,18 +1023,7 @@ class CloudLabBench:
             )
             raise BenchError(error_msg, ValueError(error_msg))
         
-        sigma = node_parameters.json.get('sigma', 1)
-        kappa = node_parameters.json.get('kappa', 2)
-        reference = node_parameters.json.get('reference', 4)
-        coverage = node_parameters.json.get('coverage', 7)
-        committee = Committee(
-            addresses,
-            self.settings.base_port,
-            sigma,
-            kappa,
-            reference,
-            coverage,
-        )
+        committee = Committee(addresses, self.settings.base_port)
         committee.print(PathMaker.committee_file())
         
         node_parameters.print(PathMaker.parameters_file())  # 改为 print() 而不是 save()
