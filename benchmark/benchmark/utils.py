@@ -128,6 +128,20 @@ class Print:
         print(f'Caused by: \n{"".join(causes)}\n')
 
 
+def load_private_key(key_path, password=None):
+    from paramiko import ECDSAKey, Ed25519Key, RSAKey
+    from paramiko.ssh_exception import PasswordRequiredException, SSHException
+
+    for key_class in (RSAKey, Ed25519Key, ECDSAKey):
+        try:
+            return key_class.from_private_key_file(key_path, password=password)
+        except PasswordRequiredException:
+            raise
+        except SSHException:
+            continue
+    raise SSHException(f'Unable to load SSH private key: {key_path}')
+
+
 def progress_bar(iterable, prefix='', suffix='', decimals=1, length=30, fill='█', print_end='\r'):
     total = len(iterable)
 

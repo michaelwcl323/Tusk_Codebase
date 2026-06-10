@@ -2,7 +2,6 @@
 from collections import OrderedDict
 from fabric import Connection, ThreadingGroup as Group
 from fabric.exceptions import GroupException
-from paramiko import RSAKey
 from paramiko.ssh_exception import PasswordRequiredException, SSHException
 from os.path import basename, splitext
 from time import sleep
@@ -11,7 +10,7 @@ from copy import deepcopy
 import subprocess
 
 from benchmark.config import Committee, Key, NodeParameters, BenchParameters, ConfigError
-from benchmark.utils import BenchError, Print, PathMaker, progress_bar
+from benchmark.utils import BenchError, Print, PathMaker, load_private_key, progress_bar
 from benchmark.commands import CommandMaker
 from benchmark.logs import LogParser, ParseError
 from benchmark.instance import InstanceManager
@@ -35,7 +34,7 @@ class Bench:
         self.manager = InstanceManager.make()
         self.settings = self.manager.settings
         try:
-            ctx.connect_kwargs.pkey = RSAKey.from_private_key_file(
+            ctx.connect_kwargs.pkey = load_private_key(
                 self.manager.settings.key_path
             )
             self.connect = ctx.connect_kwargs

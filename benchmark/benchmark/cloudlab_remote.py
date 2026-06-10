@@ -9,7 +9,6 @@ from collections import OrderedDict
 from pathlib import Path
 from fabric import Connection, ThreadingGroup as Group
 from fabric.exceptions import GroupException
-from paramiko import RSAKey
 from paramiko.ssh_exception import PasswordRequiredException, SSHException
 from time import sleep
 from math import ceil
@@ -19,7 +18,7 @@ import re
 import shlex
 
 from benchmark.config import Committee, Key, NodeParameters, BenchParameters, ConfigError
-from benchmark.utils import BenchError, Print, PathMaker
+from benchmark.utils import BenchError, Print, PathMaker, load_private_key
 from benchmark.commands import CommandMaker
 from benchmark.logs import LogParser, ParseError
 from benchmark.cloudlab_instance import CloudLabInstanceManager
@@ -48,7 +47,7 @@ class CloudLabBench:
         try:
             # Try to load key without password first
             try:
-                ctx.connect_kwargs.pkey = RSAKey.from_private_key_file(
+                ctx.connect_kwargs.pkey = load_private_key(
                     self.manager.settings.key_path
                 )
             except PasswordRequiredException:
@@ -69,9 +68,9 @@ class CloudLabBench:
                         pass
                 
                 if password:
-                    ctx.connect_kwargs.pkey = RSAKey.from_private_key_file(
+                    ctx.connect_kwargs.pkey = load_private_key(
                         self.manager.settings.key_path,
-                        password=password
+                        password=password,
                     )
                 else:
                     raise BenchError(
